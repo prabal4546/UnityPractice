@@ -11,55 +11,53 @@ struct ContentView: View {
     @State private var loading = false
     @State private var showState = false
     @State private var showLayout = false
-    @State private var display = Display.square
+    @State private var display = Display.fullscreen
     @State private var alignment = Alignment.top
     @State private var bulletCount = 10
+    @State private var sliderValue: Double = 0
 
     @ObservedObject private var unity = Unity.shared
 
     var body: some View {
-        ZStack(alignment: .bottomLeading, content: {
+        ZStack(alignment: .bottomLeading) {
             if loading {
-                // Unity is starting up or shutting down
                 ProgressView("Loading...").tint(.white).foregroundStyle(.white)
             } else if let UnityContainer = unity.view.flatMap({ UIViewContainer(containee: $0) }) {
-                // Unity is running
                 VStack {
-                    HStack {
-                        Button(action: {
-                            unity.fireBullet()
-                        }) {
-                            Text("Fire")
+                    UnityContainer.ignoresSafeArea()
+                    
+                    VStack(spacing: 10) {
+                        HStack {
+                            Button(action: {
+                                unity.fireBullet()
+                            }) {
+                                Text("Fire")
+                                    .foregroundColor(.white)
+                                    .padding()
+                                    .background(Color.red)
+                                    .cornerRadius(8)
+                            }
+                            
+                            Text("Bullets: \(unity.bulletCount)")
                                 .foregroundColor(.white)
                                 .padding()
-                                .background(Color.red)
-                                .cornerRadius(8)
                         }
+                        .padding()
                         
-                        Text("Bullets: \(unity.bulletCount)")
-                            .foregroundColor(.white)
-                            .padding()
-                    }
-                    .padding()
-                    
-                    switch display {
-                    case .fullscreen:
-                        UnityContainer.ignoresSafeArea()
-                    case .safearea:
-                        UnityContainer
-                    case .aspect, .square:
-                        let isAspect = display == .aspect
-                        GeometryReader(content: { geometry in
-                            let aspect = geometry.size.applying(CGAffineTransform(scaleX: 0.5, y: 0.5))
-                            let square = min(aspect.width, aspect.height)
-                            let width = isAspect ? aspect.width : square
-                            let height = isAspect ? aspect.height : square
-                            UnityContainer.frame(width: width, height: height).frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
-                        })
-                    }
-                    VStack(alignment: .leading, content: {
+                        VStack {
+                            Text("Number: \(Int(sliderValue))")
+                                .foregroundColor(.white)
+                            Slider(value: $sliderValue, in: 0...100, step: 1)
+                                .onChange(of: sliderValue) { newValue in
+                                    unity.updateDisplayNumber(Int(newValue))
+                                }
+                        }
+                        .padding()
+                        .background(Color.black.opacity(0.5))
+                        .cornerRadius(8)
+                        
                         if showState || showLayout {
-                            VStack(content: {
+                            VStack {
                                 if showState {
                                     HStack(content: {
                                         Text(String(format: "Scale %.2f", unity.scale))
@@ -95,45 +93,46 @@ struct ContentView: View {
                                         })
                                     }
                                 }
-                            }).padding().background(CustomButtonStyle.color).clipShape(CustomButtonStyle.shape)
+                            }.padding().background(CustomButtonStyle.color).clipShape(CustomButtonStyle.shape)
                         }
-                        HStack(content: {
+                        
+                        HStack {
                             let stateImage = "cube" + (showState ? ".fill" : "")
                             let layoutImage = "aspectratio" + (showLayout ? ".fill" : "")
-                            Button("State", systemImage: stateImage, action: {
+                            Button("State", systemImage: stateImage) {
                                 showState.toggle()
                                 showLayout = false
-                            })
-                            Button("Layout", systemImage: layoutImage, action: {
+                            }
+                            Button("Layout", systemImage: layoutImage) {
                                 showLayout.toggle()
                                 showState = false
-                            })
-                            Button("Stop Unity", systemImage: "stop", action: {
+                            }
+                            Button("Stop Unity", systemImage: "stop") {
                                 showLayout = false
                                 showState = false
                                 loading = true
-                                DispatchQueue.main.async(execute: {
+                                DispatchQueue.main.async {
                                     unity.stop()
                                     loading = false
-                                })
-                            })
-                        })
-                    })
+                                }
+                            }
+                        }
+                    }
+                    .padding()
                 }
             } else {
-                // Unity is not running
-                Button("Start Unity", systemImage: "play", action: {
-                    /* Unity startup is slow and must must occur on the
-                       main thread. Use async dispatch so we can re-render
-                       with a ProgressView before the UI becomes unresponsive. */
+                Button("Start Unity", systemImage: "play") {
                     loading = true
-                    DispatchQueue.main.async(execute: {
+                    DispatchQueue.main.async {
                         unity.start()
                         loading = false
-                    })
-                })
+                    }
+                }
             }
-        }).safeAreaPadding().pickerStyle(.segmented).buttonStyle(CustomButtonStyle())
+        }
+        .safeAreaPadding()
+        .pickerStyle(.segmented)
+        .buttonStyle(CustomButtonStyle())
     }
 }
 

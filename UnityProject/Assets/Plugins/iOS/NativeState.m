@@ -19,6 +19,11 @@ void OnUpdateBulletCount(UpdateBulletCountCallback callback) {
     nativeStateSetter.updateBulletCount = callback;
 }
 
+// Add implementation for updating display number
+void OnUpdateDisplayNumber(UpdateDisplayNumberCallback callback) {
+    nativeStateSetter.onUnityDisplayNumberUpdate = callback;
+}
+
 // Implementation of the bullet count update function that will be called from Unity
 void UpdateBulletCount(int count) {
     if (nativeStateSetter && nativeStateSetter.updateBulletCount) {
@@ -29,4 +34,14 @@ void UpdateBulletCount(int count) {
 // Add the function that matches the C# DllImport name
 void UpdateBulletCountiOS(int count) {
     UpdateBulletCount(count);
+}
+
+void UpdateDisplayNumber(int number) {
+    if (nativeStateSetter && nativeStateSetter.onUnityDisplayNumberUpdate) {
+        nativeStateSetter.onUnityDisplayNumberUpdate(number);
+    }
+}
+
+void UpdateDisplayNumberiOS(int number) {
+    UpdateDisplayNumber(number);
 }

@@ -9,7 +9,10 @@ import MetalKit
 import UnityFramework
 
 class Unity: SetsNativeState, ObservableObject  {
+    var onUnityDisplayNumberUpdate: UpdateDisplayNumberCallback?
+    
     var updateBulletCountiOS: UpdateBulletCountCallback?
+    var updateDisplayNumberiOS: UpdateDisplayNumberCallback?
     
     var updateBulletCount: UpdateBulletCountCallback?
     
@@ -126,6 +129,7 @@ class Unity: SetsNativeState, ObservableObject  {
     @Published var texture = Texture.none { didSet { stateDidSet() } }
     @Published var spotlight = LightTemperature.neutral { didSet { stateDidSet() } }
     @Published var bulletCount: Int = 10 { didSet { stateDidSet() } }
+    @Published var displayNumber: Int = 0 { didSet { stateDidSet() } }
 
     func fireBullet() {
         if bulletCount > 0 {
@@ -137,10 +141,26 @@ class Unity: SetsNativeState, ObservableObject  {
         }
     }
     
+    func updateDisplayNumber(_ number: Int) {
+        displayNumber = number
+        // Send message to Unity with proper string formatting
+        framework.sendMessageToGO(withName: "GameController",
+                                functionName: "UpdateDisplayNumber",
+                                message: String(number))
+        print("[Swift] Sent display number update: \(number)")
+    }
+
     // Function to be called from Unity to update bullet count
     @objc func updateBulletCount(_ count: Int) {
         DispatchQueue.main.async { [weak self] in
             self?.bulletCount = count
+        }
+    }
+
+    // Function to be called from Unity to update display number
+    @objc func onUnityDisplayNumberUpdate(_ number: Int) {
+        DispatchQueue.main.async { [weak self] in
+            self?.displayNumber = number
         }
     }
 
@@ -156,7 +176,8 @@ class Unity: SetsNativeState, ObservableObject  {
         spotlight.rawValue.withCString({ spotlight_C in
             let nativeState = NativeState(scale: scale, visible: visible, spotlight: spotlight_C, 
                                         textureWidth: textureWidth_C, textureHeight: textureHeight_C, 
-                                        texture: texture_C, bulletCount: CInt(bulletCount))
+                                        texture: texture_C, bulletCount: CInt(bulletCount),
+                                        displayNumber: CInt(displayNumber))
             setNativeState?(nativeState)
         })
     }
