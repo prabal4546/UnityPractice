@@ -5,7 +5,7 @@ using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    public Button unityButton;  
+    public Button unityButton;
     private int bulletCount = 10;
 
     void Start()
